@@ -5,8 +5,10 @@
     using System.Windows.Input;
     using Services;
     using Xamarin.Forms;
+    using global::App.Models;
+    using global::App.Views;
 
-    public class LoginViewModel:BaseViewModel
+    public class LoginViewModel : BaseViewModel
     {
         #region Attributes
         string email;
@@ -77,7 +79,7 @@
         {
             if (String.IsNullOrEmpty(Email))
             {
-                await App.Current.MainPage.DisplayAlert("Email empty", 
+                await App.Current.MainPage.DisplayAlert("Email empty",
                                 "Please enter your email",
                                 "Accept");
                 return;
@@ -104,15 +106,49 @@
                    "Accept");
                 return;
             }
+            TokenResponse token = await this.apiService.GetToken(
+                  "https://productosi220.azurewebsites.net",
+                  this.Email,
+                  this.Password);
+            if (token == null)
+            {
+                this.IsRunning = false;
+                this.IsEnabled = true;
+                await Application.Current.MainPage.DisplayAlert(
+                   "ERROR",
+                   "Something was wrong, please try later.",
+                   "Accept");
+                return;
+            }
 
+            if (string.IsNullOrEmpty(token.AccessToken))
+            {
+                this.IsRunning = false;
+                this.IsEnabled = true;
+                await Application.Current.MainPage.DisplayAlert(
+                   "ERROR",
+                   token.ErrorDescription,
+                   "Accept");
+                this.Password = String.Empty;
 
+                return;
+                
 
-        }
-        #endregion
+            }
+            MainViewModel mainViewModel = MainViewModel.GetInstance();
+            mainViewModel.Token = token.AccessToken;
+            mainViewModel.TokenType = token.TokenType;
 
-        public LoginViewModel()
-        {
+            Application.Current.MainPage = new NavigationPage(new ProductPage());
+            IsRunning = false;
+            IsEnabled = true;
+            }
+            #endregion
 
+            public LoginViewModel()
+            {
+
+            }
         }
     }
-}
+
